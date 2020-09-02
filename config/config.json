@@ -1,0 +1,9 @@
+{
+  "network interface name": "eno1",
+  "elmo drive count": 2,
+  "controlled motor count": 2,
+  "ratio": 100.0,
+  "encoder bits": 14,
+  "polarity file name": "polarity.json",
+  "zero configuration file name": "zero_pos.json"
+}

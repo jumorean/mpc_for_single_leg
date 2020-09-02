@@ -1,0 +1,14 @@
+{
+	"output": {
+		"index": "0x1c12",
+		"items":[
+			"0x1607"
+		]
+	},
+	"input": {
+		"index": "0x1c13",
+		"items":[
+			"0x1a07"
+		]
+	}
+}

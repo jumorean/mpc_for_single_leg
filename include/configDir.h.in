@@ -1,8 +1,11 @@
 
 
-
+#ifndef _CONFIG_H_
+#define _CONFIG_H_
 #include <string>
 
 
 const std::string configDir = "${CMAKE_CURRENT_SOURCE_DIR}/config";
 
+
+#endif /* _CONFIG_H_ */

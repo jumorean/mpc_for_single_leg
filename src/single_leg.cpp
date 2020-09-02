@@ -383,13 +383,13 @@ void mpc_thread()
 
     std::cout << "Starting to run MPC" << std::endl;
     ros::Rate rate(1000);
-    for (size_t i = 0; i < maxNumRuns; i++)
+    for(int count=0;count<maxNumRuns;count++)
     {
         // std::cout << "++++++++++++++++++++++++++++" << std::endl;
         // cnt++;
         // std::cout << "enter for loop " << std::endl;
         // let's for simplicity, assume that the "measured" state is the first state from the optimal trajectory plus some noise
-        if (i > 0)
+        if (count > 0)
         {
             for(int i=0;i<state_dim;i++)
             {

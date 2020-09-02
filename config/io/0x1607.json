@@ -1,0 +1,31 @@
+{
+	"target_position": {
+		"index": "0x607A",
+		"data type": "int32"
+	},
+	"target_velocity": {
+		"index": "0x60ff",
+		"data type": "int32"
+	},
+	"offset_velocity": {
+		"index": "0x60B1",
+		"data type": "int32"
+	},
+	"target_torque": {
+		"index": "0x6071",
+		"data type": "int16"
+	},
+	"offset_torque": {
+		"index": "0x60B2",
+		"data type": "int16"
+	},
+	"control_word": {
+		"index": "0x6040",
+		"data type": "uint16"
+	},
+	"operation_mode": {
+		"index": "0x6060",
+		"data type": "int8"
+	}
+}
+

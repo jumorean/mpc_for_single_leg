@@ -1,0 +1,22 @@
+{
+	"actual_position": {
+		"index": "0x6064",
+		"data type": "int32"
+	},
+	"actual_velocity": {
+		"index": "0x606c",
+		"data type": "int32"
+	},
+	"actual_torque": {
+		"index": "0x6077",
+		"data type": "int16"
+	},
+	"status_word": {
+		"index": "0x6041",
+		"data type": "uint16"
+	},
+	"operation_mode": {
+		"index": "0x6061",
+		"data type": "int8"
+	}
+}
