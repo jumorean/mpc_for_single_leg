@@ -1,0 +1,8 @@
+
+
+
+#include <string>
+
+
+const std::string configDir = "${CMAKE_CURRENT_SOURCE_DIR}/config";
+
