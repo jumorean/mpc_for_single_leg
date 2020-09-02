@@ -33,7 +33,6 @@ int main(int argc, char** argv)
     std::shared_ptr<ct::optcon::TermQuadratic<state_dim, control_dim>> finalCost(
         new ct::optcon::TermQuadratic<state_dim, control_dim>());
     bool verbose = true;
-    // std::string configDIR = "/home/chengdinga/codes/ros_ws/src/single_leg/config";
 
     intermediateCost->loadConfigFile(configDir + "/cost.info", "intermediateCost", verbose);
     finalCost->loadConfigFile(configDir + "/cost.info", "finalCost", verbose);

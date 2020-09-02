@@ -53,3 +53,5 @@ target_link_libraries(mpc.exe ct_core ct_optcon soem ${catkin_LIBRARIES})
 target_include_directories(mpc.exe PUBLIC /usr/local/include/soem)
 add_dependencies(mpc.exe ${catkin_EXPORTED_TARGETS})
 
+
+add_executable(main main.cpp)

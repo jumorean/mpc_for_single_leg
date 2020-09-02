@@ -5,7 +5,7 @@
 #include <sched.h>
 #include <cstring>
 #include <ctime>
-
+#include <thread>
 #include <semaphore.h>
 
 #include <pthread.h>
@@ -33,10 +33,10 @@
 
 
 bool end_program = false;
-ct::core::ControlVector<2> u;
+ct::core::ControlVector<2> mpc_force;
 int cnt =0;
 double actual_state[4] = {0};
-
+void mpc_thread();
 void ctrl_c_function(int sig)
 {
    end_program =true;
@@ -202,7 +202,7 @@ public:
     }
 
     virtual void computeControlledDynamics(
-            const x_type & x, const t_type & t, const u_type & u, x_type & x_dot) override
+            const x_type & x, const t_type & t, const u_type & tau, x_type & x_dot) override
     {
         x_dot(0) = x(2);
         x_dot(1) = x(3);
@@ -250,7 +250,7 @@ public:
         M_inv(1, 1) = M(0, 0) / det;
         M_inv(1, 0) = -M(1, 0) / det;
 
-        q_dotdot = M_inv * (u - V - G);
+        q_dotdot = M_inv * (tau - V - G);
 
         x_dot(2) = q_dotdot(0);
         x_dot(3) = q_dotdot(1);
@@ -403,7 +403,8 @@ void control_loop()
     
     // int cnt = 0;
     double time=0;
-    u.setZero();
+    mpc_force.setZero();
+    std::thread th(mpc_thread);
     /* Init code end */
 
 
@@ -469,7 +470,7 @@ void control_loop()
             else {
 
             }
-            std::cout << time << std::endl;
+            std::cout << mpc_force(0)  << "\t" << mpc_force(1) << std::endl;
             // tau += gravity_comp;
             for(int i=0;i<2;i++)
             {
@@ -791,18 +792,18 @@ void mpc_thread()
 
     InertialPara<double> inertia;
     inertia.g = 9.81;
-    inertia.m1 = 1.676432; // kg
-    inertia.m2 = 0.27959940; //kg
-    inertia.Izz1 = 0.08378037; //kgm^2
-    inertia.Izz2 = 0.01005577; //kgm^2
+    inertia.m1 = 1.8555783; // kg
+    inertia.m2 = 0.318846; //kg
+    inertia.Izz1 = 0.10543357199259; //kgm^2
+    inertia.Izz2 = 0.016684726988; //kgm^2
     inertia.l1 = 0.38;         //m
     inertia.l2 = 0.3615;       //m
-    inertia.com1(0) = 0.154585302583965;
-    inertia.com1(1) = 0.000148813426876504;
-    inertia.com1(2) = 0.0228920460487543;
-    inertia.com2(0) = 0.151947583066964;
-    inertia.com2(1) =  -5.03809557717005e-06;
-    inertia.com2(2) = -0.0285988321147522;
+    inertia.com1(0) = 0.16437808256;
+    inertia.com1(1) = 0.00038101869;
+    inertia.com1(2) = 0.05985287822;
+    inertia.com2(0) = 0.172254680;
+    inertia.com2(1) =  0.002552009;
+    inertia.com2(2) = 0.001298443;
 
     std::shared_ptr<ct::core::ControlledSystem<state_dim, control_dim, double>>
         leg(new Singleleg(&inertia));
@@ -816,13 +817,13 @@ void mpc_thread()
     // 终端损失
     std::shared_ptr<term_t> finalCost(new term_t());
 
-    const std::string cost_dir = "/home/chengdinga/codes/ros_ws/src/single_leg/config";
+    const std::string cost_dir = "/home/cda/code/ros_ws/src/mpc_for_single_leg/config";                                  
     bool verbose = true;
 
     // 从配置文件加载目标函数项
     intermediateCost->loadConfigFile(cost_dir + "/legcost.info", "intermediateCost", verbose);
     finalCost->loadConfigFile(cost_dir + "/legcost.info", "finalCost", verbose);
-
+    std::cout << "success" << std::endl;
     // 目标函数类型
     
     //定义一个目标函数
@@ -834,7 +835,8 @@ void mpc_thread()
     
 
     x_type x_des;
-    x_des << 0, 1.5708;
+    x_des(0) = 0;
+    x_des(1) = 1.5708;
     x_type x0;
     for(size_t i=0;i<state_dim;i++)
     {
@@ -948,13 +950,13 @@ void mpc_thread()
         bool success = ilqr_mpc.finishIteration(x0, t, newPolicy, ts_newPolicy);
        
         // ilqr_mpc.
-        newPolicy.computeControl(x0, 0, u);
+        newPolicy.computeControl(x0, 0, mpc_force);
 
         // std::cout << "u = " << u << std::endl;
         // we break the loop in case the time horizon is reached or solve() failed
         if (!success)
         {
-            u.setZero();
+            mpc_force.setZero();
             break;
         }
 
