@@ -134,7 +134,7 @@ int32 elmo::Motor::velocity_cmd()
     }
     else return 0;
 }
-static const int max_torque = 500;
+static const int max_torque = 300;
 
 static short torque_limit(short & target)
 {

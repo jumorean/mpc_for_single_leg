@@ -379,9 +379,9 @@ void control_loop()
     std::fstream error_file;
     std::fstream data_file;
     std::fstream motor_data_file;
-    motor_data_file.open("../data/motor_data_file", std::ios::out);
-    error_file.open("../data/error.txt", std::ios::out);
-    data_file.open("../data/data.csv", std::ios::out);
+    motor_data_file.open("/home/cda/Desktop/data/motor_data_file", std::ios::out);
+    error_file.open("/home/cda/Desktop/data/error.txt", std::ios::out);
+    data_file.open("/home/cda/Desktop/data/data.csv", std::ios::out);
     /* Init code start */
     std::vector<InputData_t *> input_data(elmo_count, nullptr);
     std::vector<OutputData_t *> output_data(elmo_count, nullptr);
@@ -421,22 +421,17 @@ void control_loop()
 
     data_file << "actual_pos[0]" << ",";
     data_file << "actual_pos[1]" << ",";
-    data_file << "target_pos[0]" << ",";
-    data_file << "target_pos[1]" << ",";
+   
     data_file << "actual_vel[0]" << ",";
     data_file << "actual_vel[1]" << ",";
-    data_file << "target_vel[0]" << ",";
-    data_file << "target_vel[1]" << ",";
+   
     data_file << "actual_torque[0]" << ",";
     data_file << "actual_torque[1]" << ",";
-    data_file << "tau[0]" << ",";
-    data_file << "tau[1]" << ",";
-    data_file << "u_ff[0]" << ",";
-    data_file << "u_ff[1]" << ",";
-    data_file << "gravity[0]" << ",";
-    data_file << "gravity[1]" << ",";
-    data_file << "friction[0]" << ",";
-    data_file << "friction[1]" << ",";
+
+    data_file << "mpc_torque[0]" << ",";
+    data_file << "mpc_torque[1]" << ",";
+   
+
     data_file << "time" << "\n";
 
     /* acyclic loop 1000ms */
@@ -470,11 +465,15 @@ void control_loop()
             else {
 
             }
-            std::cout << mpc_force(0)  << "\t" << mpc_force(1) << std::endl;
+            std::cout << ">>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
+            std::cout << "mpc_torque: " <<  mpc_force(0)  << "\t" << mpc_force(1) << std::endl;
+            std::cout << "joint angular:" << rad2deg(joints[0]->getActualAngular())
+            << "\t" << rad2deg(joints[1]->getActualAngular()) << std::endl;
+            std::cout << ">>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
             // tau += gravity_comp;
             for(int i=0;i<2;i++)
             {
-                joints[i]->torque_cmd(0);
+                joints[i]->torque_cmd(mpc_force(i));
             }
         }
 
@@ -487,6 +486,8 @@ void control_loop()
                     << joints[1]->getActualVelocity() << ","
                     << joints[0]->getActualTorque() << ","
                     << joints[1]->getActualTorque() << ","
+                    << mpc_force(0) << ","
+                    << mpc_force(1) << ","
                     << time << "\n";
             motor_data_file << motors[0]->getActualPosition() << ",";
             motor_data_file << motors[1]->getActualPosition() << ",";
