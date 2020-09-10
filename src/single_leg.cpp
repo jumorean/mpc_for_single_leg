@@ -11,6 +11,7 @@
 
 double upper_len = 0.38;
 double lower_len = 0.38;
+constexpr double pi = 3.141592654;
 
 void inverse_solution(Eigen::Matrix<double, 2, 1> & x_des, const Eigen::Matrix<double, 2, 1> & foot_end)
 {
@@ -286,7 +287,7 @@ void mpc_thread()
     // 终端损失
     std::shared_ptr<term_t> finalCost(new term_t());
 
-    const std::string cost_dir = "/home/chengdinga/codes/ros_ws/src/single_leg/config";
+    const std::string cost_dir = "/home/cda/code/ros_ws/src/mpc_for_single_leg/config";
     bool verbose = true;
 
     // 从配置文件加载目标函数项
@@ -301,10 +302,14 @@ void mpc_thread()
     costF->addIntermediateTerm(intermediateCost);
     costF->addFinalTerm(finalCost);
 
+
+
+    
+
     
 
     x_type x_des;
-    x_des << 0, 1.5708;
+    x_des << -1.0471975511965976, 2.0943951023931953, 0, 0;
     x_type x0;
     for(size_t i=0;i<state_dim;i++)
     {
@@ -383,8 +388,10 @@ void mpc_thread()
 
     std::cout << "Starting to run MPC" << std::endl;
     ros::Rate rate(1000);
+    
     for(int count=0;count<maxNumRuns;count++)
     {
+        double time_now = count*0.001;
         // std::cout << "++++++++++++++++++++++++++++" << std::endl;
         // cnt++;
         // std::cout << "enter for loop " << std::endl;
@@ -396,6 +403,12 @@ void mpc_thread()
                 x0(i) = sensor[i];
             }
         }
+        
+        x_des(0) += pi/2/1000;
+        costF->updateReferenceState(x_des);
+
+        
+
             
 
         // time which has passed since start of MPC
@@ -450,7 +463,7 @@ int main(int argc, char ** argv)
     ros::AsyncSpinner spinner(4);
     spinner.start();
     
-    file.open("/home/chengdinga/Desktop/data01.txt", std::ios::out);
+    file.open("/home/cda/Desktop/data01.txt", std::ios::out);
     ros::Rate rate(1000);
     while(ros::ok())
     {

@@ -36,6 +36,7 @@ bool end_program = false;
 ct::core::ControlVector<2> mpc_force;
 int cnt =0;
 double actual_state[4] = {0};
+double ref_state[4] = {0};
 void mpc_thread();
 void ctrl_c_function(int sig)
 {
@@ -949,7 +950,10 @@ void mpc_thread()
         current_time = std::chrono::high_resolution_clock::now();
         t = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(current_time - start_time).count();
         bool success = ilqr_mpc.finishIteration(x0, t, newPolicy, ts_newPolicy);
-       
+        ref_state[0] = newPolicy.x_ref()[0](0, 0);
+        ref_state[1] = newPolicy.x_ref()[0](1, 0);
+        ref_state[2] = newPolicy.x_ref()[0](2, 0);
+        ref_state[3] = newPolicy.x_ref()[0](3, 0);
         // ilqr_mpc.
         newPolicy.computeControl(x0, 0, mpc_force);
 
