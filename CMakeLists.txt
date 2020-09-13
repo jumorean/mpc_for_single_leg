@@ -54,4 +54,8 @@ target_include_directories(mpc.exe PUBLIC /usr/local/include/soem)
 add_dependencies(mpc.exe ${catkin_EXPORTED_TARGETS})
 
 
-add_executable(main main.cpp)
+add_executable(set_zero_torque  src/set_zero.cpp)
+target_link_libraries(set_zero_torque ${catkin_LIBRARIES})
+add_dependencies(set_zero_torque ${catkin_EXPORTED_TARGETS})
+
+# add_executable(main main.cpp)

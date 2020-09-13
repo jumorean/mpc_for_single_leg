@@ -283,15 +283,32 @@ void mpc_thread()
 
     // 中间过程损失
     std::shared_ptr<term_t> intermediateCost(new term_t());
+    std::shared_ptr<ct::optcon::TermQuadTracking<state_dim, control_dim>> intermediateNewCost(
+        new ct::optcon::TermQuadTracking<state_dim, control_dim>);
 
     // 终端损失
     std::shared_ptr<term_t> finalCost(new term_t());
 
     const std::string cost_dir = "/home/cda/code/ros_ws/src/mpc_for_single_leg/config";
-    bool verbose = true;
+    bool verbose = false;
 
     // 从配置文件加载目标函数项
+    ct::core::StateVector<state_dim> x_start;
+    x_start << 0, 0, 0, 0;
+    ct::core::StateVector<state_dim> x_end;
+    x_end << -1.0471975511965976, 2.0943951023931953, 0, 0;
+    ct::core::ControlVector<control_dim> u_start;
+    u_start << 0, 0, 0, 0;
+    ct::core::ControlVector<control_dim> u_end;
+    u_end << 0, 0, 0, 0;
+    auto x_a = ct::core::linspace<ct::core::StateVectorArray<state_dim>>(x_start, x_end, 500);
+    auto u_a = ct::core::linspace<ct::core::ControlVectorArray<control_dim>>(u_start, u_end, 500);
+    ct::core::TimeArray t_a(0.001, 500);
+    ct::core::StateTrajectory<state_dim> x_traj(t_a, x_a, ct::core::LIN);
+    ct::core::ControlTrajectory<control_dim> u_traj(t_a, u_a, ct::core::LIN);
+    intermediateNewCost->setStateAndControlReference(x_traj, u_traj);
     intermediateCost->loadConfigFile(cost_dir + "/legcost.info", "intermediateCost", verbose);
+    intermediateNewCost->loadConfigFile(cost_dir + "/legcost.info", "intermediateCost", verbose);
     finalCost->loadConfigFile(cost_dir + "/legcost.info", "finalCost", verbose);
 
     // 目标函数类型
@@ -299,7 +316,7 @@ void mpc_thread()
     //定义一个目标函数
     std::shared_ptr<cost_t_base> costF(new cost_t());
     // 添加项
-    costF->addIntermediateTerm(intermediateCost);
+    costF->addIntermediateTerm(intermediateNewCost);
     costF->addFinalTerm(finalCost);
 
 
@@ -317,13 +334,13 @@ void mpc_thread()
     }
     
     
-    t_type timeHorizon = 3.;
+    t_type timeHorizon = 0.5;
 
     
     problem_t problem(timeHorizon, x0, leg, costF, legLinearizer);
     
     settings_t ilqr_settings;
-    ilqr_settings.dt = 0.002;  // the control discretization in [sec]
+    ilqr_settings.dt = 0.001;  // the control discretization in [sec]
     ilqr_settings.integrator = ct::core::IntegrationType::EULERCT;
     ilqr_settings.discretization = settings_t::APPROXIMATION::FORWARD_EULER;
     ilqr_settings.max_iterations = 10;
@@ -384,7 +401,7 @@ void mpc_thread()
     
     auto start_time = std::chrono::high_resolution_clock::now();
     // limit the maximum number of runs in this example
-    size_t maxNumRuns = 10000;
+    size_t maxNumRuns = 5000;
 
     std::cout << "Starting to run MPC" << std::endl;
     ros::Rate rate(1000);
