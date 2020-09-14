@@ -32,10 +32,12 @@ int main(int argc, char ** argv)
     {
         rf_hfe_pub.publish(joint_torque[0]);
         rf_kfe_pub.publish(joint_torque[1]);
+        std::cout << "\rcnt = " << cnt;
         rate.sleep();
         cnt++;
         if(cnt > 1000)
         {
+            std::cout << std::endl;
             break;
         }
     }

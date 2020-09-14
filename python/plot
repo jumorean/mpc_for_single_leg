@@ -1,0 +1,68 @@
+#!/usr/bin/python3
+import numpy
+import pandas
+import matplotlib.pyplot as plt
+
+
+data_file_name = "/home/cda/code/ros_ws/src/mpc_for_single_leg/mpc_data.csv"
+# data_file_name = "/home/chengdinga/Desktop/2020_08_07data/data_pd.csv"
+# data = pandas.read_table(data_file_name, sep=",")
+data = pandas.read_table(data_file_name, sep=",")
+# target_data = pandas.read_table("../data/target_data.txt", sep="\t")
+
+start_time = None
+end_time = None
+
+actual_pos0 = data["actual_pos0"].values[start_time:end_time]
+actual_pos1 = data["actual_pos1"].values[start_time:end_time]
+
+target_pos0 = data["target_pos0"].values[start_time:end_time]
+target_pos1 = data["target_pos1"].values[start_time:end_time]
+
+actual_vel0 = data["actual_vel0"].values[start_time:end_time]
+actual_vel1 = data["actual_vel1"].values[start_time:end_time]
+
+target_vel0 = data["target_vel0"].values[start_time:end_time]
+target_vel1 = data["target_vel1"].values[start_time:end_time]
+
+
+time = data["time"].values[start_time:end_time]
+rows = 2
+cols = 2
+fig = plt.figure()
+lw = 1.5
+cnt = 1
+plt.subplot(rows, cols, cnt)
+plt.plot(time, target_pos0, linewidth=2, color="green")
+plt.plot(time, actual_pos0, linewidth=lw, color="red")
+plt.legend(["target_pos0", "actual_pos0"], fontsize=16)
+plt.grid()
+cnt += 1
+
+plt.subplot(rows, cols, cnt)
+plt.plot(time, target_pos1, linewidth=2, color="green")
+plt.plot(time, actual_pos1, linewidth=lw, color="red")
+plt.legend(["target_pos1", "actual_pos1"], fontsize=16)
+plt.grid()
+cnt += 1
+
+plt.subplot(rows, cols, cnt)
+plt.plot(time, target_vel0, linewidth=2, color="green")
+plt.plot(time, actual_vel0, linewidth=lw, color="red")
+plt.legend(["target_vel0", "actual_vel0"], fontsize=16)
+plt.grid()
+cnt += 1
+
+plt.subplot(rows, cols, cnt)
+plt.plot(time, target_vel1, linewidth=2, color="green")
+plt.plot(time, actual_vel1, linewidth=lw, color="red")
+plt.legend(["target_vel1", "actual_vel1"], fontsize=16)
+plt.grid()
+cnt += 1
+
+
+plt.show()
+
+
+
+

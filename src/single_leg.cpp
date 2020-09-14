@@ -1,4 +1,3 @@
-
 // #define PLOTTING_ENABLED
 #include <ct/core/core.h>
 #include <ct/optcon/optcon.h>
@@ -233,6 +232,10 @@ typedef tpl::Singleleg<double> Singleleg;
 ct::core::ControlVector<2> u;
 int cnt =0;
 
+
+
+
+
 void mpc_thread()
 {
     // mpc initialization
@@ -243,8 +246,7 @@ void mpc_thread()
     typedef ct::core::ControlVector<control_dim> u_type;
     typedef ct::core::StateVector<2> q_type;
     typedef ct::core::Time t_type;
-    typedef ct::optcon::CostFunctionQuadratic<state_dim, control_dim> cost_t_base;
-    typedef ct::optcon::CostFunctionAnalytical<state_dim, control_dim> cost_t;
+    
     typedef ct::optcon::TermQuadratic<state_dim, control_dim> term_t;
     typedef ct::optcon::OptConProblemBase<state_dim, control_dim,
             ct::core::ControlledSystem<state_dim, control_dim>,
@@ -259,6 +261,11 @@ void mpc_thread()
     using NLOptConSolver = ct::optcon::NLOptConSolver<state_dim, control_dim>;
     using ct::core::ControlVectorArray;
     using ct::core::StateVectorArray;
+
+    std::fstream mpc_data;
+    mpc_data.open("/home/cda/code/ros_ws/src/mpc_for_single_leg/mpc_data.csv", std::ios::out);
+    mpc_data << "target_pos0,target_pos1,target_vel0,target_vel1,actual_pos0,actual_pos1,actual_vel0,actual_vel1,time\n";
+
 
     InertialPara<double> inertia;
     inertia.g = 9.81;
@@ -281,10 +288,7 @@ void mpc_thread()
     std::shared_ptr<ct::core::SystemLinearizer<state_dim, control_dim, double>>
         legLinearizer(new ct::core::SystemLinearizer<state_dim, control_dim, double>(leg));
 
-    // 中间过程损失
-    std::shared_ptr<term_t> intermediateCost(new term_t());
-    std::shared_ptr<ct::optcon::TermQuadTracking<state_dim, control_dim>> intermediateNewCost(
-        new ct::optcon::TermQuadTracking<state_dim, control_dim>);
+    
 
     // 终端损失
     std::shared_ptr<term_t> finalCost(new term_t());
@@ -294,9 +298,9 @@ void mpc_thread()
 
     // 从配置文件加载目标函数项
     ct::core::StateVector<state_dim> x_start;
-    x_start << 0, 0, 0, 0;
+    x_start << 0, 0, -1.0471975511965976 * 2, 2.0943951023931953 * 2;
     ct::core::StateVector<state_dim> x_end;
-    x_end << -1.0471975511965976, 2.0943951023931953, 0, 0;
+    x_end << -1.0471975511965976, 2.0943951023931953, -1.0471975511965976 * 2, 2.0943951023931953 * 2;
     ct::core::ControlVector<control_dim> u_start;
     u_start << 0, 0, 0, 0;
     ct::core::ControlVector<control_dim> u_end;
@@ -306,18 +310,36 @@ void mpc_thread()
     ct::core::TimeArray t_a(0.001, 500);
     ct::core::StateTrajectory<state_dim> x_traj(t_a, x_a, ct::core::LIN);
     ct::core::ControlTrajectory<control_dim> u_traj(t_a, u_a, ct::core::LIN);
-    intermediateNewCost->setStateAndControlReference(x_traj, u_traj);
-    intermediateCost->loadConfigFile(cost_dir + "/legcost.info", "intermediateCost", verbose);
-    intermediateNewCost->loadConfigFile(cost_dir + "/legcost.info", "intermediateCost", verbose);
+
+    // 中间过程损失
+    ct::optcon::TermQuadTracking<state_dim, control_dim>::state_matrix_t Q;
+    ct::optcon::TermQuadTracking<state_dim, control_dim>::control_matrix_t R;
+    ct::optcon::loadMatrixCF(cost_dir + "/legcost.info", "Q", Q, "intermediateCost");
+    ct::optcon::loadMatrixCF(cost_dir + "/legcost.info", "R", R, "intermediateCost");
+    std::shared_ptr<ct::optcon::TermQuadTracking<state_dim, control_dim>> intermediateTrackingCost(
+        new ct::optcon::TermQuadTracking<state_dim, control_dim>(Q, R, ct::core::LIN, ct::core::ZOH, false));
+    intermediateTrackingCost->setStateAndControlReference(x_traj, u_traj);
+
+    
+
+    intermediateTrackingCost->setStateAndControlReference(x_traj, u_traj);
+    auto data_array = x_traj.getDataArray();
+    for (auto i:data_array)
+    {
+        std::cout << i.transpose() << std::endl;
+    }
+    
     finalCost->loadConfigFile(cost_dir + "/legcost.info", "finalCost", verbose);
 
     // 目标函数类型
     
     //定义一个目标函数
-    std::shared_ptr<cost_t_base> costF(new cost_t());
+    std::shared_ptr<ct::optcon::CostFunctionQuadratic<state_dim, control_dim>> costF(
+        new ct::optcon::CostFunctionAnalytical<state_dim, control_dim>());
     // 添加项
-    costF->addIntermediateTerm(intermediateNewCost);
+    costF->addIntermediateTerm(intermediateTrackingCost);
     costF->addFinalTerm(finalCost);
+
 
 
 
@@ -421,11 +443,28 @@ void mpc_thread()
             }
         }
         
-        x_des(0) += pi/2/1000;
-        costF->updateReferenceState(x_des);
-
-        
-
+        x_end(2) = 0;
+        x_end(3) = 0;
+        x_traj.eraseFront(1);
+        x_traj.push_back(x_end, 0.001, false);
+        intermediateTrackingCost->setStateAndControlReference(x_traj, u_traj);
+        //定义一个目标函数
+        std::shared_ptr<ct::optcon::CostFunctionQuadratic<state_dim, control_dim>> newCostFunction(
+            new ct::optcon::CostFunctionAnalytical<state_dim, control_dim>());
+        // 添加项
+        newCostFunction->addIntermediateTerm(intermediateTrackingCost);
+        newCostFunction->addFinalTerm(finalCost);
+        ilqr_mpc.getSolver().changeCostFunction(newCostFunction);
+        auto x_target = x_traj.front();
+        mpc_data << x_target(0)<< ","
+            << x_target(1)<< ","
+            << x_target(2)<< ","
+            << x_target(3)<< ","
+            << sensor[0] << ","
+            << sensor[1] << ","
+            << sensor[2] << ","
+            << sensor[3] << ","
+            << x_traj.startTime() << "\n";
             
 
         // time which has passed since start of MPC
@@ -452,10 +491,13 @@ void mpc_thread()
         // std::cout << "u = " << u << std::endl;
         // we break the loop in case the time horizon is reached or solve() failed
         if (!success)
+        {
             break;
+        }
         std::cout << "cnt = " << cnt << std::endl;
         rate.sleep();
     }
+    mpc_data.close();
 
     // 
 
@@ -513,7 +555,3 @@ int main(int argc, char ** argv)
     th.join();
     return 0;
 }
-
-
-
-
