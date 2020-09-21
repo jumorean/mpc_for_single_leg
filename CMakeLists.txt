@@ -58,4 +58,8 @@ add_executable(set_zero_torque  src/set_zero.cpp)
 target_link_libraries(set_zero_torque ${catkin_LIBRARIES})
 add_dependencies(set_zero_torque ${catkin_EXPORTED_TARGETS})
 
+add_executable(initialize  src/initial.cpp)
+target_link_libraries(initialize ${catkin_LIBRARIES})
+add_dependencies(initialize ${catkin_EXPORTED_TARGETS})
+
 # add_executable(main main.cpp)

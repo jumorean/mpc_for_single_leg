@@ -9,8 +9,15 @@
 
 
 double upper_len = 0.38;
-double lower_len = 0.38;
+double lower_len = 0.3612;
 constexpr double pi = 3.141592654;
+
+void forward_solution(Eigen::Matrix<double, 2, 1> & foot_end, const Eigen::Matrix<double, 2, 1> & angular)
+{
+    foot_end(0) = upper_len * cos(angular(0)) + lower_len * cos(angular(1) + angular(0));
+    foot_end(1) = upper_len * sin(angular(0)) + lower_len * sin(angular(1) + angular(0));
+}
+
 
 void inverse_solution(Eigen::Matrix<double, 2, 1> & x_des, const Eigen::Matrix<double, 2, 1> & foot_end)
 {
@@ -233,7 +240,7 @@ ct::core::ControlVector<2> u;
 int cnt =0;
 
 
-
+// constexpr double pi = 3.141592654;
 
 
 void mpc_thread()
@@ -263,8 +270,36 @@ void mpc_thread()
     using ct::core::StateVectorArray;
 
     std::fstream mpc_data;
+    // std::fstream joint_angular_data;
+    std::fstream RF_HFE_joint_data;
+    RF_HFE_joint_data.open("/home/cda/code/ros_ws/src/mpc_for_single_leg/RF_HFE_joint_data.csv", std::ios::out);
+    std::fstream RF_KFE_joint_data;
+    RF_KFE_joint_data.open("/home/cda/code/ros_ws/src/mpc_for_single_leg/RF_KFE_joint_data.csv", std::ios::out);        
     mpc_data.open("/home/cda/code/ros_ws/src/mpc_for_single_leg/mpc_data.csv", std::ios::out);
-    mpc_data << "target_pos0,target_pos1,target_vel0,target_vel1,actual_pos0,actual_pos1,actual_vel0,actual_vel1,time\n";
+    // mpc_data << "target_footend_x,target_footend_y,target_vel0,target_vel1,actual_pos0,actual_pos1,actual_vel0,actual_vel1,time\n";
+    mpc_data << "target_angular1,target_angular2,actual_angular1,actual_angular2,time\n";
+    RF_HFE_joint_data << "target_angular,actual_angular,target_velocity,actual_velocity,time\n";
+    RF_KFE_joint_data << "target_angular,actual_angular,target_velocity,actual_velocity,time\n";
+    std::fstream foot_end_position_data;
+    foot_end_position_data << "actual_x,actual_y,target_x,targety,time";
+    std::fstream foot_end_velocity_data;
+    foot_end_velocity_data << "actual_x,actual_y,target_x,targety,time";
+    Eigen::Matrix<double, 2, 1> actual_footend_pos;
+    Eigen::Matrix<double, 2, 1> actual_footend_vel;
+    
+
+    Eigen::Matrix<double, 2, 1> target_footend_pos;
+    Eigen::Matrix<double, 2, 1> target_footend_vel;
+
+
+    Eigen::Matrix<double, 2, 1> actual_joint_ang;
+    Eigen::Matrix<double, 2, 1> actual_joint_vel;
+
+    Eigen::Matrix<double, 2, 1> target_joint_ang;
+    Eigen::Matrix<double, 2, 1> target_joint_vel;
+
+
+    Eigen::Matrix<double, 2, 2> jacobian;
 
 
     InertialPara<double> inertia;
@@ -300,12 +335,33 @@ void mpc_thread()
     ct::core::StateVector<state_dim> x_start;
     x_start << 0, 0, -1.0471975511965976 * 2, 2.0943951023931953 * 2;
     ct::core::StateVector<state_dim> x_end;
-    x_end << -1.0471975511965976, 2.0943951023931953, -1.0471975511965976 * 2, 2.0943951023931953 * 2;
+    x_end << -pi/3, pi/3*2, -pi/3*2, 2.0943951023931953 * 2;
     ct::core::ControlVector<control_dim> u_start;
     u_start << 0, 0, 0, 0;
     ct::core::ControlVector<control_dim> u_end;
     u_end << 0, 0, 0, 0;
     auto x_a = ct::core::linspace<ct::core::StateVectorArray<state_dim>>(x_start, x_end, 500);
+    double time_tmp;
+    double w = 1;
+    for (int i=0;i<500;i++)
+    {
+        time_tmp = i * 0.001;
+        target_footend_pos(0) = 0.400 + 0.2 * cos(w * pi * time_tmp);
+        target_footend_pos(1) = 0.2 * sin(w * pi * time_tmp);
+        target_footend_vel(0) = -w * pi * 0.2 * sin(w * pi * time_tmp);
+        target_footend_vel(1) = w * pi * 0.2 * cos(w * pi * time_tmp);
+        inverse_solution(target_joint_ang, target_footend_pos);
+        jacobian(0, 0) = -upper_len * sin(target_joint_ang(0)) - lower_len * sin(target_joint_ang(0) + target_joint_ang(1));
+        jacobian(0, 1) = -lower_len * sin(target_joint_ang(0) + target_joint_ang(1));
+        jacobian(1, 0) = upper_len * cos(target_joint_ang(0)) + lower_len * cos(target_joint_ang(0) + target_joint_ang(1));
+        jacobian(1, 1) = lower_len * cos(target_joint_ang(0) + target_joint_ang(1));
+        target_joint_vel = jacobian.inverse() * target_footend_vel;
+        x_a[i](0, 0) = target_joint_ang(0, 0);
+        x_a[i](1, 0) = target_joint_ang(1, 0);
+        x_a[i](2, 0) = target_joint_vel(0, 0);
+        x_a[i](3, 0) = target_joint_vel(1, 0);
+        
+    }
     auto u_a = ct::core::linspace<ct::core::ControlVectorArray<control_dim>>(u_start, u_end, 500);
     ct::core::TimeArray t_a(0.001, 500);
     ct::core::StateTrajectory<state_dim> x_traj(t_a, x_a, ct::core::LIN);
@@ -329,7 +385,7 @@ void mpc_thread()
         std::cout << i.transpose() << std::endl;
     }
     
-    finalCost->loadConfigFile(cost_dir + "/legcost.info", "finalCost", verbose);
+    // finalCost->loadConfigFile(cost_dir + "/legcost.info", "finalCost", verbose);
 
     // 目标函数类型
     
@@ -338,7 +394,7 @@ void mpc_thread()
         new ct::optcon::CostFunctionAnalytical<state_dim, control_dim>());
     // 添加项
     costF->addIntermediateTerm(intermediateTrackingCost);
-    costF->addFinalTerm(finalCost);
+    // costF->addFinalTerm(finalCost);
 
 
 
@@ -427,7 +483,7 @@ void mpc_thread()
 
     std::cout << "Starting to run MPC" << std::endl;
     ros::Rate rate(1000);
-    
+    double time_after_horizon;
     for(int count=0;count<maxNumRuns;count++)
     {
         double time_now = count*0.001;
@@ -441,10 +497,30 @@ void mpc_thread()
             {
                 x0(i) = sensor[i];
             }
+            
+            
+            
         }
-        
-        x_end(2) = 0;
-        x_end(3) = 0;
+        actual_joint_ang(0, 0) = sensor[0];
+        actual_joint_ang(1, 0) = sensor[1];
+
+        forward_solution(actual_footend_pos, actual_joint_ang);
+        time_after_horizon = time_now + 0.5;
+        // target_footend_pos = 
+        target_footend_pos(0) = 0.400 + 0.2 * cos(w * pi * time_after_horizon);
+        target_footend_pos(1) = 0.2 * sin(w * pi * time_after_horizon);
+        target_footend_vel(0) = -w * pi * 0.2 * sin(w * pi * time_after_horizon);
+        target_footend_vel(1) = w * pi * 0.2 * cos(w * pi * time_after_horizon);
+        inverse_solution(target_joint_ang, target_footend_pos);
+        jacobian(0, 0) = -upper_len * sin(target_joint_ang(0)) - lower_len * sin(target_joint_ang(0) + target_joint_ang(1));
+        jacobian(0, 1) = -lower_len * sin(target_joint_ang(0) + target_joint_ang(1));
+        jacobian(1, 0) = upper_len * cos(target_joint_ang(0)) + lower_len * cos(target_joint_ang(0) + target_joint_ang(1));
+        jacobian(1, 1) = lower_len * cos(target_joint_ang(0) + target_joint_ang(1));
+        target_joint_vel = jacobian.inverse() * target_footend_vel;
+        x_end(0) = target_joint_ang(0, 0);
+        x_end(1) = target_joint_ang(1, 0);
+        x_end(2) = target_joint_vel(0, 0);
+        x_end(3) = target_joint_vel(1, 0);
         x_traj.eraseFront(1);
         x_traj.push_back(x_end, 0.001, false);
         intermediateTrackingCost->setStateAndControlReference(x_traj, u_traj);
@@ -453,7 +529,7 @@ void mpc_thread()
             new ct::optcon::CostFunctionAnalytical<state_dim, control_dim>());
         // 添加项
         newCostFunction->addIntermediateTerm(intermediateTrackingCost);
-        newCostFunction->addFinalTerm(finalCost);
+        // newCostFunction->addFinalTerm(finalCost);
         ilqr_mpc.getSolver().changeCostFunction(newCostFunction);
         auto x_target = x_traj.front();
         mpc_data << x_target(0)<< ","
@@ -465,6 +541,23 @@ void mpc_thread()
             << sensor[2] << ","
             << sensor[3] << ","
             << x_traj.startTime() << "\n";
+        RF_HFE_joint_data << x_target(0) << ","
+            << sensor[0] << ","
+            << x_target(2) << ","
+            << sensor[2] << ","
+            << x_traj.startTime() << "\n";
+        RF_KFE_joint_data << x_target(1) << ","
+            << sensor[1] << ","
+            << x_target(3) << ","
+            << sensor[3] << ","
+            << x_traj.startTime() << "\n";
+         
+        // mpc_data << x_target(0) << ","
+        //     << x_target(1) << ","
+        //     << 
+        //     << actual_joint_ang(0) << ","
+        //     << actual_joint_ang(1) << ","
+        //     << x_traj.startTime() << "\n";
             
 
         // time which has passed since start of MPC

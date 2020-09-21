@@ -5,61 +5,87 @@ import matplotlib.pyplot as plt
 
 
 data_file_name = "/home/cda/code/ros_ws/src/mpc_for_single_leg/mpc_data.csv"
+RF_HFE_joint_data_filename = "/home/cda/code/ros_ws/src/mpc_for_single_leg/RF_HFE_joint_data.csv"
+RF_KFE_joint_data_filename = "/home/cda/code/ros_ws/src/mpc_for_single_leg/RF_KFE_joint_data.csv"
 # data_file_name = "/home/chengdinga/Desktop/2020_08_07data/data_pd.csv"
 # data = pandas.read_table(data_file_name, sep=",")
-data = pandas.read_table(data_file_name, sep=",")
+RF_HFE_joint_data = pandas.read_table(RF_HFE_joint_data_filename, sep=",")
+RF_KFE_joint_data = pandas.read_table(RF_KFE_joint_data_filename, sep=",")
 # target_data = pandas.read_table("../data/target_data.txt", sep="\t")
 
-start_time = None
+start_time = 500
 end_time = None
 
-actual_pos0 = data["actual_pos0"].values[start_time:end_time]
-actual_pos1 = data["actual_pos1"].values[start_time:end_time]
+target_angular = {}
+actual_angular = {}
+target_velocity = {}
+actual_velocity = {}
+target_angular["RF_HFE"] = RF_HFE_joint_data["target_angular"].values[start_time:end_time]
+target_angular["RF_KFE"] = RF_KFE_joint_data["target_angular"].values[start_time:end_time]
+actual_angular["RF_HFE"] = RF_HFE_joint_data["actual_angular"].values[start_time:end_time]
+actual_angular["RF_KFE"] = RF_KFE_joint_data["actual_angular"].values[start_time:end_time]
 
-target_pos0 = data["target_pos0"].values[start_time:end_time]
-target_pos1 = data["target_pos1"].values[start_time:end_time]
+target_velocity["RF_HFE"] = RF_HFE_joint_data["target_velocity"].values[start_time:end_time]
+target_velocity["RF_KFE"] = RF_KFE_joint_data["target_velocity"].values[start_time:end_time]
+actual_velocity["RF_HFE"] = RF_HFE_joint_data["actual_velocity"].values[start_time:end_time]
+actual_velocity["RF_KFE"] = RF_KFE_joint_data["actual_velocity"].values[start_time:end_time]
+# x_act = data["pos_target1"].values[start_time:end_time]
+# y_act = data["pos_target2"].values[start_time:end_time]
 
-actual_vel0 = data["actual_vel0"].values[start_time:end_time]
-actual_vel1 = data["actual_vel1"].values[start_time:end_time]
+# target_pos0 = data["target_pos0"].values[start_time:end_time]
+# target_pos1 = data["target_pos1"].values[start_time:end_time]
 
-target_vel0 = data["target_vel0"].values[start_time:end_time]
-target_vel1 = data["target_vel1"].values[start_time:end_time]
+# actual_vel0 = data["actual_vel0"].values[start_time:end_time]
+# actual_vel1 = data["actual_vel1"].values[start_time:end_time]
+
+# target_vel0 = data["target_vel0"].values[start_time:end_time]
+# target_vel1 = data["target_vel1"].values[start_time:end_time]
 
 
-time = data["time"].values[start_time:end_time]
+time = RF_HFE_joint_data["time"].values[start_time:end_time]
 rows = 2
 cols = 2
 fig = plt.figure()
 lw = 1.5
 cnt = 1
 plt.subplot(rows, cols, cnt)
-plt.plot(time, target_pos0, linewidth=2, color="green")
-plt.plot(time, actual_pos0, linewidth=lw, color="red")
-plt.legend(["target_pos0", "actual_pos0"], fontsize=16)
+plt.plot(time, target_angular["RF_HFE"], linewidth=2, color="green")
+plt.plot(time, actual_angular["RF_HFE"], linewidth=lw, color="red")
+plt.legend(["target", "actual"], fontsize=16)
+plt.title("RF_HFE joint angular")
 plt.grid()
 cnt += 1
 
 plt.subplot(rows, cols, cnt)
-plt.plot(time, target_pos1, linewidth=2, color="green")
-plt.plot(time, actual_pos1, linewidth=lw, color="red")
-plt.legend(["target_pos1", "actual_pos1"], fontsize=16)
+plt.plot(time, target_angular["RF_KFE"], linewidth=2, color="green")
+plt.plot(time, actual_angular["RF_KFE"], linewidth=lw, color="red")
+plt.legend(["target", "actual"], fontsize=16)
+plt.title("RF_KFE joint angular")
 plt.grid()
 cnt += 1
 
 plt.subplot(rows, cols, cnt)
-plt.plot(time, target_vel0, linewidth=2, color="green")
-plt.plot(time, actual_vel0, linewidth=lw, color="red")
-plt.legend(["target_vel0", "actual_vel0"], fontsize=16)
+plt.plot(time, target_velocity["RF_HFE"], linewidth=2, color="green")
+plt.plot(time, actual_velocity["RF_HFE"], linewidth=lw, color="red")
+plt.legend(["target", "actual"], fontsize=16)
+plt.title("RF_HFE joint velocity")
 plt.grid()
 cnt += 1
 
 plt.subplot(rows, cols, cnt)
-plt.plot(time, target_vel1, linewidth=2, color="green")
-plt.plot(time, actual_vel1, linewidth=lw, color="red")
-plt.legend(["target_vel1", "actual_vel1"], fontsize=16)
+plt.plot(time, target_velocity["RF_KFE"], linewidth=2, color="green")
+plt.plot(time, actual_velocity["RF_KFE"], linewidth=lw, color="red")
+plt.legend(["target", "actual"], fontsize=16)
+plt.title("RF_KFE joint velocity")
 plt.grid()
-cnt += 1
-
+# cnt += 1
+# plt.subplot(rows, cols, cnt)
+# plt.plot(x, y, linewidth=2, color="green")
+# plt.plot(x_act, y_act, linewidth=2, color="red")
+# # plt.plot(time, actual_vel1, linewidth=lw, color="red")
+# plt.legend(["target_vel1", "actual_vel1"], fontsize=16)
+# plt.grid()
+# cnt += 1
 
 plt.show()
 
